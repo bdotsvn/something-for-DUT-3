@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý thông tin cá nhân</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; display: flex; justify-content: center; padding: 30px; }
+        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        h2 { text-align: center; color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555;}
+        input[type="text"], input[type="email"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;}
+        .avatar-container { text-align: center; margin-bottom: 20px; }
+        .avatar-container img { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid #007bff; margin-bottom: 10px;}
+        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; transition: 0.3s;}
+        button:hover { background-color: #0056b3; }
+        .loading { text-align: center; color: #007bff; font-weight: bold; display: none; margin-top: 10px;}
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Hồ Sơ Của Tôi</h2>
+
+    <div class="avatar-container">
+        <!-- Ảnh mặc định nếu chưa có -->
+        <img id="previewImage" src="https://via.placeholder.com/150" alt="Ảnh đại diện">
+        <input type="file" id="AnhDaiDien" accept="image/*" onchange="previewFile()">
+    </div>
+
+    <form id="profileForm">
+        <!-- Mã SV Readonly vì dùng để định danh -->
+        <div class="form-group">
+            <label>Mã Sinh Viên</label>
+            <input type="text" id="MaSV" readonly style="background-color: #e9ecef;">
+        </div>
+        <div class="form-group">
+            <label>Họ và Tên</label>
+            <input type="text" id="HoTen" required>
+        </div>
+        <div class="form-group">
+            <label>Lớp</label>
+            <input type="text" id="Lop" required>
+        </div>
+        <div class="form-group">
+            <label>Nhóm Học Phần</label>
+            <input type="text" id="NhomHP" required>
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="Email" required>
+        </div>
+
+        <button type="submit">Cập nhật thông tin</button>
+        <div id="statusMessage" class="loading">Đang xử lý...</div>
+    </form>
+</div>
+
+<script>
+    // CHÚ Ý: Đổi Port này thành Port Backend của bạn khi chạy project
+    const API_BASE_URL = 'http://localhost:5139/api/ThongTinCaNhan';
+    const MY_STUDENT_ID = 'SV001'; // Mã sinh viên mẫu
+
+    // 1. Fetch dữ liệu khi load trang (GET)
+    document.addEventListener("DOMContentLoaded", () => {
+        fetch(`${API_BASE_URL}/${MY_STUDENT_ID}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('MaSV').value = data.maSV;
+                document.getElementById('HoTen').value = data.hoTen;
+                document.getElementById('Lop').value = data.lop;
+                document.getElementById('NhomHP').value = data.nhomHP;
+                document.getElementById('Email').value = data.email;
+                if(data.anhDaiDienUrl) {
+                    document.getElementById('previewImage').src = data.anhDaiDienUrl;
+                }
+            })
+            .catch(err => console.error("Lỗi khi tải dữ liệu:", err));
+    });
+
+    // 2. Hiển thị ảnh preview ngay khi chọn file
+    function previewFile() {
+        const file = document.getElementById('AnhDaiDien').files[0];
+        const preview = document.getElementById('previewImage');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) { preview.src = e.target.result; }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // 3. Xử lý khi Submit Form (PUT)
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const statusMsg = document.getElementById('statusMessage');
+        statusMsg.style.display = 'block';
+
+        // Sử dụng FormData để đóng gói cả Text và File
+        const formData = new FormData();
+        formData.append('HoTen', document.getElementById('HoTen').value);
+        formData.append('Lop', document.getElementById('Lop').value);
+        formData.append('NhomHP', document.getElementById('NhomHP').value);
+        formData.append('Email', document.getElementById('Email').value);
+
+        const fileInput = document.getElementById('AnhDaiDien');
+        if (fileInput.files.length > 0) {
+            formData.append('AnhDaiDien', fileInput.files[0]);
+        }
+
+        // Gọi API PUT
+        // Lưu ý: Tuyệt đối KHÔNG set header 'Content-Type': 'multipart/form-data'.
+        // Trình duyệt sẽ tự động set nó kèm theo 'boundary' chuẩn xác khi truyền FormData.
+        fetch(`${API_BASE_URL}/${MY_STUDENT_ID}`, {
+            method: 'PUT',
+            body: formData
+        })
+        .then(response => {
+            if(response.ok) {
+                alert('Cập nhật thành công!');
+            } else {
+                alert('Có lỗi xảy ra!');
+            }
+        })
+        .catch(error => console.error('Error:', error))
+        .finally(() => {
+            statusMsg.style.display = 'none';
+        });
+    });
+</script>
+
+</body>
+</html>

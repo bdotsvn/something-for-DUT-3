@@ -1,0 +1,10 @@
+# Directories
+bin/
+obj/
+*.pdb
+*.dll
+*.user
+*.suo
+*.exe
+.vs/
+api_log.txt
